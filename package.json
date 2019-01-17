@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/caseydlvr/RecurringTasks-WebAPI/issues"
   },
-  "homepage": "https://github.com/caseydlvr/RecurringTasks-WebAPI#readme"
+  "homepage": "https://github.com/caseydlvr/RecurringTasks-WebAPI#readme",
+  "dependencies": {
+    "express": "^4.16.4"
+  }
 }
