@@ -1,10 +1,10 @@
 'use strict';
 
 exports.up = (knex) => {
-  knex.schema
+  return knex.schema
     .createTable('users', (table) => {
       table.increments('id').primary();
-      table.string('email');
+      table.string('auth_server_id');
     })
     .createTable('tasks', (table) => {
       table.increments('id').primary();
@@ -50,9 +50,9 @@ exports.up = (knex) => {
 };
 
 exports.down = (knex) => {
-  knex.schema
-    .dropTableIfExists('users')
-    .dropTableIfExists('tasks')
+  return knex.schema
+    .dropTableIfExists('tasks_tags')
     .dropTableIfExists('tags')
-    .dropTableIfExists('tasks_tags');
+    .dropTableIfExists('tasks')
+    .dropTableIfExists('users');
 };
