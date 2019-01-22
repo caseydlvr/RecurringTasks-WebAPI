@@ -1,14 +1,37 @@
 'use strict';
 
 const express = require('express');
-const routes = require('./routes');
+const morgan = require('morgan');
 const bodyParser = require('body-parser');
+const { Model } = require('objection');
 const Knex = require('knex');
 const knexConfig = require('./knexfile');
-const { Model } = require('objection');
+const router = require('./router');
 
-const app = express();
-const port = process.evn.PORT || 3000;
 const knex = Knex(knexConfig.development);
+const port = process.env.PORT || 3000;
+const app = express()
+  .use(bodyParser.json())
+  .use(morgan('dev'))
+  .use(router)
+  .set('json spaces', 2);
+
+Model.knex(knex);
+
+app.use((req, res, next) => {
+  const err = new Error('Not Found');
+  err.status = 404;
+  next(err); // signals there's an error
+});
+
+// Error Handler
+app.use((err, req, res, next) => {
+  res.status(err.status || 500);
+  res.json({
+    error: {
+      message: err.message,
+    },
+  });
+});
 
 app.listen(port, () => console.log(`Express server is listening on port ${port}`));
