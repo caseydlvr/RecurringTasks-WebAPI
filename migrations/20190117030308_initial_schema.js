@@ -20,6 +20,7 @@ exports.up = (knex) => {
       table.date('start_date');
       table.boolean('repeating');
       table.string('notification_option');
+      table.index('user_id');
     })
     .createTable('tags', (table) => {
       table.increments('id').primary();
@@ -30,6 +31,7 @@ exports.up = (knex) => {
         .inTable('users')
         .onDelete('CASCADE');
       table.string('name');
+      table.index('user_id');
     })
     .createTable('tasks_tags', (table) => {
       table
