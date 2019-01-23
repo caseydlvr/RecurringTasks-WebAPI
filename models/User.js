@@ -17,6 +17,28 @@ class User extends Model {
       },
     };
   }
+
+  static get relationMappings() {
+    return {
+      tasks: {
+        relation: Model.HasManyRelation,
+        modelClass: `${__dirname}/Task`,
+        join: {
+          from: 'users.id',
+          to: 'tasks.user_id',
+        },
+      },
+
+      tags: {
+        relation: Model.HasManyRelation,
+        modelClass: `${__dirname}/Tag`,
+        join: {
+          from: 'users.id',
+          to: 'tags.user_id',
+        },
+      },
+    };
+  }
 }
 
 module.exports = User;
