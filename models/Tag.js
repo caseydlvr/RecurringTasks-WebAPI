@@ -19,6 +19,32 @@ class Tag extends Model {
       },
     };
   }
+
+  static get relationMappings() {
+    return {
+      tasks: {
+        relation: Model.ManyToManyRelation,
+        modelClass: `${__dirname}/Task`,
+        join: {
+          from: 'tags.id',
+          through: {
+            from: 'tasks_tags.tag_id',
+            to: 'tasks_tags.task_id',
+          },
+          to: 'tasks.id',
+        },
+      },
+
+      user: {
+        relation: Model.BelongsToOneRelation,
+        modelClass: `${__dirname}/User`,
+        join: {
+          from: 'tags.user_id',
+          to: 'users.id',
+        },
+      },
+    };
+  }
 }
 
 module.exports = Tag;
