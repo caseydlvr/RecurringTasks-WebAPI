@@ -34,15 +34,20 @@ router.get('/:userId/tasks/:taskId', async (req, res, next) => {
 router.post('/:userId/tasks', async (req, res, next) => {
   const newTask = await Task.query().insert(req.body);
 
-  res.json(newtask);
+  res.json(newTask);
 });
 
 router.post('/:userId/tasks/:taskId/complete', (req, res, next) => {
 
 });
 
-router.patch('/:userId/tasks/:taskId', (req, res, next) => {
+router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
+  const updateCount = await Task.query()
+    .patch(req.body)
+    .where('id', req.params.taskId)
+    .andWhere('user_id', req.params.userId);
 
+  res.json(updateCount);
 });
 
 router.delete('/:userId/tasks/:taskId', async (req, res, next) => {
@@ -63,14 +68,18 @@ router.get('/:userId/tags', async (req, res, next) => {
 });
 
 router.post('/:userId/tags', async (req, res, next) => {
-  const newTag = await Tag.query()
-    .insert(req.body);
+  const newTag = await Tag.query().insert(req.body);
 
   res.json(newTag);
 });
 
-router.patch('/:userId/tags/:tagId', (req, res, next) => {
+router.patch('/:userId/tags/:tagId', async (req, res, next) => {
+  const updateCount = await Tag.query()
+    .patch(req.body)
+    .where('id', req.params.tagId)
+    .andWhere('user_id', req.params.userId);
 
+  res.json(updateCount);
 });
 
 router.delete('/:userId/tags/:tagId', async (req, res, next) => {
