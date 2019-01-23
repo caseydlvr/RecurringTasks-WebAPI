@@ -1,6 +1,8 @@
 'use strict';
 
 const { Model } = require('objection');
+const Tag = require('./Tag');
+const User = require('./User');
 
 class Task extends Model {
   static get tableName() {
@@ -28,6 +30,32 @@ class Task extends Model {
         start_date: { type: 'date' },
         repeating: { type: 'boolean' },
         notification_option: { type: 'string', enum: ['never', 'overdue', 'overdue_due'] },
+      },
+    };
+  }
+
+  static get relationMappings() {
+    return {
+      tags: {
+        relation: Model.ManyToManyRelation,
+        modelClass: Tag,
+        join: {
+          from: 'tasks.id',
+          through: {
+            from: 'tasks_tags.task_id',
+            to: 'tasks_tags.tag_id',
+          },
+          to: 'tags.id',
+        },
+      },
+
+      user: {
+        relation: Model.BelongsToOneRelation,
+        modelClass: User,
+        join: {
+          from: 'tasks.user_id',
+          to: 'users.id',
+        },
       },
     };
   }
