@@ -7,13 +7,20 @@ const Tag = require('./models/Tag');
 
 const router = express.Router();
 
+// Helper functions -----------------------------------------------------------
+
+function notFoundError() {
+  const err = new Error('Not Found');
+  err.status = 404;
+  return err;
+}
+
 // Param middleware -----------------------------------------------------------
 
 router.param('userId', (req, res, next, id) => {
   req.body.user_id = parseInt(id, 10);
   next();
 });
-
 
 // Task routes ----------------------------------------------------------------
 
@@ -28,13 +35,17 @@ router.get('/:userId/tasks/:taskId', async (req, res, next) => {
     .where('id', req.params.taskId)
     .andWhere('user_id', req.params.userId);
 
-  res.json(task);
+  if (!task) {
+    next(notFoundError());
+  } else {
+    res.json(task);
+  }
 });
 
 router.post('/:userId/tasks', async (req, res, next) => {
   const newTask = await Task.query().insert(req.body);
 
-  res.json(newTask);
+  res.status(201).json(newTask);
 });
 
 router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
@@ -46,12 +57,16 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
       .where('id', req.params.taskId)
       .andWhere('user_id', req.params.userId);
 
+    if (!task) throw notFoundError();
+
     const deleteCount = await Task.query(trx)
       .delete()
       .where('id', req.params.taskId)
       .andWhere('user_id', req.params.userId);
 
-    let newTask = {};
+    if (deleteCount !== 1) throw new Error();
+
+    let newTask;
 
     if (task.repeating) {
       delete task.id;
@@ -60,9 +75,15 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
     }
 
     await trx.commit();
-    res.json(newTask);
+
+    if (newTask) {
+      res.status(201).json(newTask);
+    } else {
+      res.sendStatus(204);
+    }
   } catch (err) {
     await trx.rollback();
+    next(err);
   }
 });
 
