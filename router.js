@@ -24,7 +24,7 @@ router.get('/:userId/tasks', async (req, res, next) => {
 });
 
 router.get('/:userId/tasks/:taskId', async (req, res, next) => {
-  const task = await Task.query()
+  const [task] = await Task.query()
     .where('id', req.params.taskId)
     .andWhere('user_id', req.params.userId);
 
@@ -37,8 +37,33 @@ router.post('/:userId/tasks', async (req, res, next) => {
   res.json(newTask);
 });
 
-router.post('/:userId/tasks/:taskId/complete', (req, res, next) => {
+router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
+  let trx;
+  try {
+    trx = await transaction.start(Task.knex());
 
+    const [task] = await Task.query(trx)
+      .where('id', req.params.taskId)
+      .andWhere('user_id', req.params.userId);
+
+    const deleteCount = await Task.query(trx)
+      .delete()
+      .where('id', req.params.taskId)
+      .andWhere('user_id', req.params.userId);
+
+    let newTask = {};
+
+    if (task.repeating) {
+      delete task.id;
+      delete task.start_date;
+      newTask = await Task.query(trx).insert(task);
+    }
+
+    await trx.commit();
+    res.json(newTask);
+  } catch (err) {
+    await trx.rollback();
+  }
 });
 
 router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
