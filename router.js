@@ -2,6 +2,7 @@
 
 const express = require('express');
 const { transaction } = require('objection');
+const User = require('./models/User');
 const Task = require('./models/Task');
 const Tag = require('./models/Tag');
 
@@ -17,9 +18,16 @@ function notFoundError() {
 
 // Param middleware -----------------------------------------------------------
 
-router.param('userId', (req, res, next, id) => {
+router.param('userId', async (req, res, next, id) => {
   req.body.user_id = parseInt(id, 10);
-  next();
+
+  const [user] = await User.query().where('id', req.body.user_id);
+
+  if (!user) {
+    next(notFoundError());
+  } else {
+    next();
+  }
 });
 
 // Task routes ----------------------------------------------------------------
