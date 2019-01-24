@@ -16,7 +16,6 @@ class Task extends Model {
         'name',
         'duration',
         'duration_unit',
-        'start_date',
         'repeating',
         'notification_option'],
 
@@ -25,7 +24,6 @@ class Task extends Model {
         user_id: { type: 'integer', minimum: 1 },
         name: { type: 'string', minLength: 1, maxLength: 255 },
         duration: { type: 'integer', minimum: 1, maximum: 999 },
-        // duration_unit: { type: 'string', pattern: '^(day|week|month|year)$' },
         duration_unit: { type: 'string', enum: ['day', 'week', 'month', 'year'] },
         start_date: { type: 'date' },
         repeating: { type: 'boolean' },
