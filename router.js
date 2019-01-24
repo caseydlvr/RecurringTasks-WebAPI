@@ -51,7 +51,7 @@ router.get('/:userId/tasks/:taskId', async (req, res, next) => {
 });
 
 router.post('/:userId/tasks', async (req, res, next) => {
-  const newTask = await Task.query().insert(req.body);
+  const newTask = await Task.query().insert(req.body).returning('*');
 
   res.status(201).json(newTask);
 });
@@ -79,7 +79,7 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
     if (task.repeating) {
       delete task.id;
       delete task.start_date;
-      newTask = await Task.query(trx).insert(task);
+      newTask = await Task.query(trx).insert(task).returning('*');
     }
 
     await trx.commit();
