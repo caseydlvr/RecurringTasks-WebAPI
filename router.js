@@ -33,7 +33,9 @@ router.param('userId', async (req, res, next, id) => {
 // Task routes ----------------------------------------------------------------
 
 router.get('/:userId/tasks', async (req, res, next) => {
-  const tasks = await Task.query().where('user_id', req.params.userId);
+  const tasks = await Task.query()
+    .where('user_id', req.params.userId)
+    .eager('tags');
 
   res.json(tasks);
 });
@@ -41,7 +43,8 @@ router.get('/:userId/tasks', async (req, res, next) => {
 router.get('/:userId/tasks/:taskId', async (req, res, next) => {
   const [task] = await Task.query()
     .where('id', req.params.taskId)
-    .andWhere('user_id', req.params.userId);
+    .andWhere('user_id', req.params.userId)
+    .eager('tags');
 
   if (!task) {
     next(notFoundError());
