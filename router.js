@@ -67,12 +67,10 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
 
     if (!task) throw notFoundError();
 
-    const deleteCount = await Task.query(trx)
+    await Task.query(trx)
       .delete()
       .where('id', req.params.taskId)
       .andWhere('user_id', req.params.userId);
-
-    if (deleteCount !== 1) throw new Error();
 
     let newTask;
 
@@ -96,21 +94,22 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
 });
 
 router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
-  const updateCount = await Task.query()
+  const [updatedTask] = await Task.query()
     .patch(req.body)
     .where('id', req.params.taskId)
-    .andWhere('user_id', req.params.userId);
+    .andWhere('user_id', req.params.userId)
+    .returning('*');
 
-  res.json(updateCount);
+  res.json(updatedTask);
 });
 
 router.delete('/:userId/tasks/:taskId', async (req, res, next) => {
-  const deleteCount = await Task.query()
+  await Task.query()
     .delete()
     .where('id', req.params.taskId)
     .andWhere('user_id', req.params.userId);
 
-  res.json(deleteCount);
+  res.sendStatus(204);
 });
 
 // Tag routes -----------------------------------------------------------------
@@ -122,27 +121,28 @@ router.get('/:userId/tags', async (req, res, next) => {
 });
 
 router.post('/:userId/tags', async (req, res, next) => {
-  const newTag = await Tag.query().insert(req.body);
+  const newTag = await Tag.query().insert(req.body).returning('*');
 
   res.json(newTag);
 });
 
 router.patch('/:userId/tags/:tagId', async (req, res, next) => {
-  const updateCount = await Tag.query()
+  const [updatedTag] = await Tag.query()
     .patch(req.body)
     .where('id', req.params.tagId)
-    .andWhere('user_id', req.params.userId);
+    .andWhere('user_id', req.params.userId)
+    .returning('*');
 
-  res.json(updateCount);
+  res.json(updatedTag);
 });
 
 router.delete('/:userId/tags/:tagId', async (req, res, next) => {
-  const deleteCount = await Tag.query()
+  await Tag.query()
     .delete()
     .where('id', req.params.tagId)
     .andWhere('user_id', req.params.userId);
 
-  res.json(deleteCount);
+  res.sendStatus(204);
 });
 
 module.exports = router;
