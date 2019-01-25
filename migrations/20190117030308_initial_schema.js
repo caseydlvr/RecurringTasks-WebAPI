@@ -11,15 +11,16 @@ exports.up = (knex) => {
       table
         .integer('user_id')
         .unsigned()
+        .notNullable()
         .references('id')
         .inTable('users')
         .onDelete('CASCADE');
-      table.string('name');
-      table.integer('duration').unsigned();
-      table.string('duration_unit');
-      table.date('start_date');
-      table.boolean('repeating');
-      table.string('notification_option');
+      table.string('name').notNullable();
+      table.integer('duration').unsigned().notNullable();
+      table.string('duration_unit').notNullable();
+      table.date('start_date').notNullable().defaultTo(knex.fn.now());
+      table.boolean('repeating').notNullable();
+      table.string('notification_option').notNullable();
       table.index('user_id');
     })
     .createTable('tags', (table) => {
@@ -27,22 +28,25 @@ exports.up = (knex) => {
       table
         .integer('user_id')
         .unsigned()
+        .notNullable()
         .references('id')
         .inTable('users')
         .onDelete('CASCADE');
-      table.string('name');
+      table.string('name').notNullable();
       table.index('user_id');
     })
     .createTable('tasks_tags', (table) => {
       table
         .integer('task_id')
         .unsigned()
+        .notNullable()
         .references('id')
         .inTable('tasks')
         .onDelete('CASCADE');
       table
         .integer('tag_id')
         .unsigned()
+        .notNullable()
         .references('id')
         .inTable('tags')
         .onDelete('CASCADE');
