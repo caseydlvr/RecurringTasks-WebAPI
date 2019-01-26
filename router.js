@@ -67,7 +67,8 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
 
     const [task] = await Task.query(trx)
       .where('id', req.params.taskId)
-      .andWhere('user_id', req.params.userId);
+      .andWhere('user_id', req.params.userId)
+      .eager('tags');
 
     if (!task) throw notFoundError();
 
@@ -81,7 +82,8 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
     if (task.repeating) {
       delete task.id;
       delete task.start_date;
-      newTask = await Task.query(trx).insert(task).returning('*');
+      newTask = await Task.query(trx)
+        .insertWithRelatedAndFetch(task, { relate: true });
     }
 
     await trx.commit();
