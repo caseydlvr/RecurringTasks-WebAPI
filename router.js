@@ -54,7 +54,8 @@ router.get('/:userId/tasks/:taskId', async (req, res, next) => {
 });
 
 router.post('/:userId/tasks', async (req, res, next) => {
-  const newTask = await Task.query().insert(req.body).returning('*');
+  const newTask = await Task.query()
+    .insertWithRelatedAndFetch(req.body, { relate: true });
 
   res.status(201).json(newTask);
 });
