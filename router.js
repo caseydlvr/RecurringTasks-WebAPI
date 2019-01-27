@@ -100,11 +100,15 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
 });
 
 router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
-  const [updatedTask] = await Task.query()
-    .patch(req.body)
-    .where('id', req.params.taskId)
-    .andWhere('user_id', req.params.userId)
-    .returning('*');
+  const updatedTask = await Task.query()
+    .upsertGraphAndFetch(req.body, {
+      relate: ['tags'],
+      unrelate: ['tags'],
+      noInsert: ['tags', 'users'],
+      noUpdate: ['tags', 'users'],
+      noDelete: ['tags', 'users'],
+    })
+    .eager('tags');
 
   res.json(updatedTask);
 });
