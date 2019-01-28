@@ -6,8 +6,8 @@ module.exports = {
     client: 'postgresql',
     connection: {
       host: '127.0.0.1',
-      user: 'dev',
-      password: 'Cq^5$avTE*',
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
       database: 'recurring_tasks',
     },
   },
