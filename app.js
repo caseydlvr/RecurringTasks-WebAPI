@@ -1,15 +1,16 @@
 'use strict';
 
+const port = process.env.PORT || 3000;
+const env = process.env.NODE_ENV || 'development';
 const express = require('express');
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const { Model } = require('objection');
 const Knex = require('knex');
-const knexConfig = require('./knexfile');
+const knexConfig = require('./knexfile')[env];
 const router = require('./router');
 
-const knex = Knex(knexConfig.development);
-const port = process.env.PORT || 3000;
+const knex = Knex(knexConfig);
 const app = express()
   .use(bodyParser.json())
   .use(morgan('dev'))
