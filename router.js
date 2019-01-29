@@ -16,6 +16,18 @@ function notFoundError() {
   return err;
 }
 
+function injectUserIdInTags(req) {
+  if (Object.prototype.hasOwnProperty.call(req.body, 'tags')) {
+    if (Array.isArray(req.body.tags)) {
+      req.body.tags.forEach((tag, i) => {
+        req.body.tags[i].user_id = req.body.user_id;
+      });
+    } else if (typeof req.body.tags === 'object') {
+      req.body.tags.user_id = req.body.user_id;
+    }
+  }
+}
+
 // Param middleware -----------------------------------------------------------
 
 router.param('userId', async (req, res, next, id) => {
@@ -54,6 +66,8 @@ router.get('/:userId/tasks/:taskId', async (req, res, next) => {
 });
 
 router.post('/:userId/tasks', async (req, res, next) => {
+  injectUserIdInTags(req);
+
   const newTask = await Task.query()
     .allowInsert('tags')
     .insertWithRelatedAndFetch(req.body, { relate: true });
@@ -102,6 +116,7 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
 
 router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
   req.body.id = parseInt(req.params.taskId, 10);
+  injectUserIdInTags(req);
 
   const updatedTask = await Task.query()
     .upsertGraphAndFetch(req.body, {
