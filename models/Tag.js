@@ -26,12 +26,12 @@ class Tag extends Model {
         relation: Model.ManyToManyRelation,
         modelClass: `${__dirname}/Task`,
         join: {
-          from: 'tags.id',
+          from: ['tags.id', 'tags.user_id'],
           through: {
-            from: 'tasks_tags.tag_id',
-            to: 'tasks_tags.task_id',
+            from: ['tasks_tags.tag_id', 'tasks_tags.user_id'],
+            to: ['tasks_tags.task_id', 'tasks_tags.user_id'],
           },
-          to: 'tasks.id',
+          to: ['tasks.id', 'tasks.user_id'],
         },
       },
 

@@ -7,7 +7,7 @@ exports.up = (knex) => {
       table.string('auth_server_id');
     })
     .createTable('tasks', (table) => {
-      table.increments('id').primary();
+      table.specificType('id', 'serial');
       table
         .integer('user_id')
         .unsigned()
@@ -21,10 +21,11 @@ exports.up = (knex) => {
       table.date('start_date').notNullable().defaultTo(knex.fn.now());
       table.boolean('repeating').notNullable();
       table.string('notification_option').notNullable();
+      table.primary(['id', 'user_id']);
       table.index('user_id');
     })
     .createTable('tags', (table) => {
-      table.increments('id').primary();
+      table.specificType('id', 'serial');
       table
         .integer('user_id')
         .unsigned()
@@ -33,21 +34,30 @@ exports.up = (knex) => {
         .inTable('users')
         .onDelete('CASCADE');
       table.string('name').notNullable();
+      table.primary(['id', 'user_id']);
       table.index('user_id');
     })
     .createTable('tasks_tags', (table) => {
       table
         .integer('task_id')
         .unsigned()
-        .notNullable()
-        .references('id')
-        .inTable('tasks')
-        .onDelete('CASCADE');
+        .notNullable();
       table
         .integer('tag_id')
         .unsigned()
-        .notNullable()
-        .references('id')
+        .notNullable();
+      table
+        .integer('user_id')
+        .unsigned()
+        .notNullable();
+      table
+        .foreign(['task_id', 'user_id'])
+        .references(['id', 'user_id'])
+        .inTable('tasks')
+        .onDelete('CASCADE');
+      table
+        .foreign(['tag_id', 'user_id'])
+        .references(['id', 'user_id'])
         .inTable('tags')
         .onDelete('CASCADE');
       table.primary(['task_id', 'tag_id']);
