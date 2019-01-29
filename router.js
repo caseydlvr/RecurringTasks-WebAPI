@@ -55,6 +55,7 @@ router.get('/:userId/tasks/:taskId', async (req, res, next) => {
 
 router.post('/:userId/tasks', async (req, res, next) => {
   const newTask = await Task.query()
+    .allowInsert('tags')
     .insertWithRelatedAndFetch(req.body, { relate: true });
 
   res.status(201).json(newTask);
@@ -100,6 +101,8 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
 });
 
 router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
+  req.body.id = parseInt(req.params.taskId, 10);
+
   const updatedTask = await Task.query()
     .upsertGraphAndFetch(req.body, {
       relate: ['tags'],
@@ -114,12 +117,16 @@ router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
 });
 
 router.delete('/:userId/tasks/:taskId', async (req, res, next) => {
-  await Task.query()
+  const deleteCount = await Task.query()
     .delete()
     .where('id', req.params.taskId)
     .andWhere('user_id', req.params.userId);
 
-  res.sendStatus(204);
+  if (deleteCount < 1) {
+    next(notFoundError());
+  } else {
+    res.sendStatus(204);
+  }
 });
 
 // Tag routes -----------------------------------------------------------------
