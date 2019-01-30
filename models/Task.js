@@ -1,10 +1,10 @@
 'use strict';
 
-const { Model } = require('objection');
+const { BaseModel } = require('./BaseModel');
 const Tag = require('./Tag');
 const User = require('./User');
 
-class Task extends Model {
+class Task extends BaseModel {
   static get tableName() {
     return 'tasks';
   }
@@ -35,7 +35,7 @@ class Task extends Model {
   static get relationMappings() {
     return {
       tags: {
-        relation: Model.ManyToManyRelation,
+        relation: BaseModel.ManyToManyRelation,
         modelClass: Tag,
         join: {
           from: ['tasks.id', 'tasks.user_id'],
@@ -48,7 +48,7 @@ class Task extends Model {
       },
 
       user: {
-        relation: Model.BelongsToOneRelation,
+        relation: BaseModel.BelongsToOneRelation,
         modelClass: User,
         join: {
           from: 'tasks.user_id',
