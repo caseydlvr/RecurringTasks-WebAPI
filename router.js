@@ -70,13 +70,18 @@ router.get('/:userId/tasks/:taskId', async (req, res, next) => {
 router.post('/:userId/tasks', async (req, res, next) => {
   injectUserIdInTags(req);
 
+  let trx;
   try {
+    trx = await transaction.start(Task.knex());
+
     const newTask = await Task.query()
       .allowInsert('tags')
       .insertWithRelatedAndFetch(req.body, { relate: true });
 
+    await trx.commit();
     res.status(201).json(newTask);
   } catch (err) {
+    await trx.rollback(err);
     next(err);
   }
 });
@@ -116,7 +121,7 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
       res.sendStatus(204);
     }
   } catch (err) {
-    await trx.rollback();
+    await trx.rollback(err);
     next(err);
   }
 });
@@ -125,7 +130,10 @@ router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
   req.body.id = parseInt(req.params.taskId, 10);
   injectUserIdInTags(req);
 
+  let trx;
   try {
+    trx = await transaction.start(Task.knex());
+
     const updatedTask = await Task.query()
       .upsertGraphAndFetch(req.body, {
         relate: ['tags'],
@@ -136,8 +144,10 @@ router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
       })
       .eager('tags');
 
+    await trx.commit();
     res.json(updatedTask);
   } catch (err) {
+    await trx.rollback(err);
     next(err);
   }
 });
