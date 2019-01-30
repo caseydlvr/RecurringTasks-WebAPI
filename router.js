@@ -74,14 +74,14 @@ router.post('/:userId/tasks', async (req, res, next) => {
   try {
     trx = await transaction.start(Task.knex());
 
-    const newTask = await Task.query()
+    const newTask = await Task.query(trx)
       .allowInsert('tags')
       .insertWithRelatedAndFetch(req.body, { relate: true });
 
     await trx.commit();
     res.status(201).json(newTask);
   } catch (err) {
-    await trx.rollback(err);
+    await trx.rollback();
     next(err);
   }
 });
@@ -121,7 +121,7 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
       res.sendStatus(204);
     }
   } catch (err) {
-    await trx.rollback(err);
+    await trx.rollback();
     next(err);
   }
 });
@@ -134,7 +134,7 @@ router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
   try {
     trx = await transaction.start(Task.knex());
 
-    const updatedTask = await Task.query()
+    const updatedTask = await Task.query(trx)
       .upsertGraphAndFetch(req.body, {
         relate: ['tags'],
         unrelate: ['tags'],
@@ -147,7 +147,7 @@ router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
     await trx.commit();
     res.json(updatedTask);
   } catch (err) {
-    await trx.rollback(err);
+    await trx.rollback();
     next(err);
   }
 });
