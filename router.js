@@ -24,12 +24,41 @@ function injectUserIdInTags(req) {
 
 // Param middleware -----------------------------------------------------------
 
+// abort if user doesn't exist
 router.param('userId', async (req, res, next, id) => {
   req.body.user_id = parseInt(id, 10);
 
   try {
     await User.query()
       .where('id', req.body.user_id)
+      .throwIfNotFound();
+
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// abort if task doesn't exist or isn't this user's task
+router.param('taskId', async (req, res, next) => {
+  try {
+    await Task.query()
+      .where('id', req.params.taskId)
+      .andWhere('user_id', req.params.userId)
+      .throwIfNotFound();
+
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// abort if tag doesn't exist or isn't this user's task
+router.param('tagId', async (req, res, next) => {
+  try {
+    await Tag.query()
+      .where('id', req.params.tagId)
+      .andWhere('user_id', req.params.userId)
       .throwIfNotFound();
 
     next();
