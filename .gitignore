@@ -59,3 +59,6 @@ typings/
 
 # next.js build output
 .next
+
+# firebase admin sdk private key
+*-firebase-adminsdk-*.json
