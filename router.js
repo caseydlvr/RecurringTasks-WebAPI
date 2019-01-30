@@ -10,12 +10,6 @@ const router = express.Router();
 
 // Helper functions -----------------------------------------------------------
 
-function notFoundError() {
-  const err = new Error('Not Found');
-  err.status = 404;
-  return err;
-}
-
 function injectUserIdInTags(req) {
   if (Object.prototype.hasOwnProperty.call(req.body, 'tags')) {
     if (Array.isArray(req.body.tags)) {
@@ -33,46 +27,58 @@ function injectUserIdInTags(req) {
 router.param('userId', async (req, res, next, id) => {
   req.body.user_id = parseInt(id, 10);
 
-  const [user] = await User.query().where('id', req.body.user_id);
+  try {
+    await User.query()
+      .where('id', req.body.user_id)
+      .throwIfNotFound();
 
-  if (!user) {
-    next(notFoundError());
-  } else {
     next();
+  } catch (err) {
+    next(err);
   }
 });
 
 // Task routes ----------------------------------------------------------------
 
 router.get('/:userId/tasks', async (req, res, next) => {
-  const tasks = await Task.query()
-    .where('user_id', req.params.userId)
-    .eager('tags');
+  try {
+    const tasks = await Task.query()
+      .where('user_id', req.params.userId)
+      .eager('tags');
 
-  res.json(tasks);
+    res.json(tasks);
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.get('/:userId/tasks/:taskId', async (req, res, next) => {
-  const [task] = await Task.query()
-    .where('id', req.params.taskId)
-    .andWhere('user_id', req.params.userId)
-    .eager('tags');
+  try {
+    const task = await Task.query()
+      .where('id', req.params.taskId)
+      .andWhere('user_id', req.params.userId)
+      .eager('tags')
+      .first()
+      .throwIfNotFound();
 
-  if (!task) {
-    next(notFoundError());
-  } else {
     res.json(task);
+  } catch (err) {
+    next(err);
   }
 });
 
 router.post('/:userId/tasks', async (req, res, next) => {
   injectUserIdInTags(req);
 
-  const newTask = await Task.query()
-    .allowInsert('tags')
-    .insertWithRelatedAndFetch(req.body, { relate: true });
+  try {
+    const newTask = await Task.query()
+      .allowInsert('tags')
+      .insertWithRelatedAndFetch(req.body, { relate: true });
 
-  res.status(201).json(newTask);
+    res.status(201).json(newTask);
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
@@ -80,17 +86,18 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
   try {
     trx = await transaction.start(Task.knex());
 
-    const [task] = await Task.query(trx)
+    const task = await Task.query(trx)
       .where('id', req.params.taskId)
       .andWhere('user_id', req.params.userId)
-      .eager('tags');
-
-    if (!task) throw notFoundError();
+      .eager('tags')
+      .first()
+      .throwIfNotFound();
 
     await Task.query(trx)
       .delete()
       .where('id', req.params.taskId)
-      .andWhere('user_id', req.params.userId);
+      .andWhere('user_id', req.params.userId)
+      .throwIfNotFound();
 
     let newTask;
 
@@ -118,63 +125,87 @@ router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
   req.body.id = parseInt(req.params.taskId, 10);
   injectUserIdInTags(req);
 
-  const updatedTask = await Task.query()
-    .upsertGraphAndFetch(req.body, {
-      relate: ['tags'],
-      unrelate: ['tags'],
-      noInsert: ['tags', 'users'],
-      noUpdate: ['tags', 'users'],
-      noDelete: ['tags', 'users'],
-    })
-    .eager('tags');
+  try {
+    const updatedTask = await Task.query()
+      .upsertGraphAndFetch(req.body, {
+        relate: ['tags'],
+        unrelate: ['tags'],
+        noInsert: ['tags', 'users'],
+        noUpdate: ['tags', 'users'],
+        noDelete: ['tags', 'users'],
+      })
+      .eager('tags');
 
-  res.json(updatedTask);
+    res.json(updatedTask);
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.delete('/:userId/tasks/:taskId', async (req, res, next) => {
-  const deleteCount = await Task.query()
-    .delete()
-    .where('id', req.params.taskId)
-    .andWhere('user_id', req.params.userId);
+  try {
+    await Task.query()
+      .delete()
+      .where('id', req.params.taskId)
+      .andWhere('user_id', req.params.userId)
+      .throwIfNotFound();
 
-  if (deleteCount < 1) {
-    next(notFoundError());
-  } else {
     res.sendStatus(204);
+  } catch (err) {
+    next(err);
   }
 });
 
 // Tag routes -----------------------------------------------------------------
 
 router.get('/:userId/tags', async (req, res, next) => {
-  const tags = await Tag.query().where('user_id', req.params.userId);
+  try {
+    const tags = await Tag.query().where('user_id', req.params.userId);
 
-  res.json(tags);
+    res.json(tags);
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.post('/:userId/tags', async (req, res, next) => {
-  const newTag = await Tag.query().insert(req.body).returning('*');
+  try {
+    const newTag = await Tag.query().insert(req.body).returning('*');
 
-  res.json(newTag);
+    res.json(newTag);
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.patch('/:userId/tags/:tagId', async (req, res, next) => {
-  const [updatedTag] = await Tag.query()
-    .patch(req.body)
-    .where('id', req.params.tagId)
-    .andWhere('user_id', req.params.userId)
-    .returning('*');
+  try {
+    const updatedTag = await Tag.query()
+      .patch(req.body)
+      .where('id', req.params.tagId)
+      .andWhere('user_id', req.params.userId)
+      .returning('*')
+      .first()
+      .throwIfNotFound();
 
-  res.json(updatedTag);
+    res.json(updatedTag);
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.delete('/:userId/tags/:tagId', async (req, res, next) => {
-  await Tag.query()
-    .delete()
-    .where('id', req.params.tagId)
-    .andWhere('user_id', req.params.userId);
+  try {
+    await Tag.query()
+      .delete()
+      .where('id', req.params.tagId)
+      .andWhere('user_id', req.params.userId)
+      .throwIfNotFound();
 
-  res.sendStatus(204);
+    res.sendStatus(204);
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;

@@ -9,30 +9,17 @@ const { Model } = require('objection');
 const Knex = require('knex');
 const knexConfig = require('./knexfile')[env];
 const router = require('./router');
+const { catchRouteNotFound, errorHandler } = require('./error');
 
 const knex = Knex(knexConfig);
 const app = express()
   .use(bodyParser.json())
   .use(morgan('dev'))
   .use(router)
+  .use(catchRouteNotFound)
+  .use(errorHandler)
   .set('json spaces', 2);
 
 Model.knex(knex);
-
-app.use((req, res, next) => {
-  const err = new Error('Not Found');
-  err.status = 404;
-  next(err); // signals there's an error
-});
-
-// Error Handler
-app.use((err, req, res, next) => {
-  res.status(err.status || 500);
-  res.json({
-    error: {
-      message: err.message,
-    },
-  });
-});
 
 app.listen(port, () => console.log(`Express server is listening on port ${port}`));
