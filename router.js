@@ -1,12 +1,19 @@
 'use strict';
 
+const admin = require('firebase-admin');
 const express = require('express');
 const { transaction } = require('objection');
 const User = require('./models/User');
 const Task = require('./models/Task');
 const Tag = require('./models/Tag');
+// eslint-disable-next-line import/no-dynamic-require
+const serviceAccount = require(process.env.FIREBASE_PK_PATH);
 
 const router = express.Router();
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 // Helper functions -----------------------------------------------------------
 
@@ -22,29 +29,59 @@ function injectUserIdInTags(req) {
   }
 }
 
-// Param middleware -----------------------------------------------------------
-
-// abort if user doesn't exist
-router.param('userId', async (req, res, next, id) => {
-  req.body.user_id = parseInt(id, 10);
+async function authenticate(req, res, next) {
+  let token = req.get('authorization');
+  if (token.startsWith('Bearer ')) {
+    // Remove Bearer from string
+    token = token.slice(7, token.length);
+  }
 
   try {
-    await User.query()
-      .where('id', req.body.user_id)
-      .throwIfNotFound();
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    req.auth_server_id = decodedToken.uid;
+    next();
+  } catch (err) {
+    err.status = 401;
+    next(err);
+  }
+}
+
+async function loadUser(req, res, next) {
+  let user;
+  try {
+    user = await User.query()
+      .where('auth_server_id', req.auth_server_id)
+      .first();
+
+    // user doesn't exist in DB yet, create
+    if (!user) {
+      user = await User.query()
+        .insert({ auth_server_id: req.auth_server_id })
+        .returning('*')
+        .throwIfNotFound();
+    }
+
+    req.user_id = user.id;
+    req.body.user_id = user.id;
 
     next();
   } catch (err) {
     next(err);
   }
-});
+}
+
+// Auth ----------------------------------------------------------------------
+
+router.all('*', authenticate, loadUser);
+
+// Param middleware -----------------------------------------------------------
 
 // abort if task doesn't exist or isn't this user's task
 router.param('taskId', async (req, res, next) => {
   try {
     await Task.query()
       .where('id', req.params.taskId)
-      .andWhere('user_id', req.params.userId)
+      .andWhere('user_id', req.user_id)
       .throwIfNotFound();
 
     next();
@@ -53,12 +90,12 @@ router.param('taskId', async (req, res, next) => {
   }
 });
 
-// abort if tag doesn't exist or isn't this user's task
+// abort if tag doesn't exist or isn't this user's tag
 router.param('tagId', async (req, res, next) => {
   try {
     await Tag.query()
       .where('id', req.params.tagId)
-      .andWhere('user_id', req.params.userId)
+      .andWhere('user_id', req.user_id)
       .throwIfNotFound();
 
     next();
@@ -69,10 +106,10 @@ router.param('tagId', async (req, res, next) => {
 
 // Task routes ----------------------------------------------------------------
 
-router.get('/:userId/tasks', async (req, res, next) => {
+router.get('/tasks', async (req, res, next) => {
   try {
     const tasks = await Task.query()
-      .where('user_id', req.params.userId)
+      .where('user_id', req.user_id)
       .eager('tags');
 
     res.json(tasks);
@@ -81,11 +118,11 @@ router.get('/:userId/tasks', async (req, res, next) => {
   }
 });
 
-router.get('/:userId/tasks/:taskId', async (req, res, next) => {
+router.get('/tasks/:taskId', async (req, res, next) => {
   try {
     const task = await Task.query()
       .where('id', req.params.taskId)
-      .andWhere('user_id', req.params.userId)
+      .andWhere('user_id', req.user_id)
       .eager('tags')
       .first()
       .throwIfNotFound();
@@ -96,7 +133,7 @@ router.get('/:userId/tasks/:taskId', async (req, res, next) => {
   }
 });
 
-router.post('/:userId/tasks', async (req, res, next) => {
+router.post('/tasks', async (req, res, next) => {
   injectUserIdInTags(req);
 
   let trx;
@@ -115,14 +152,14 @@ router.post('/:userId/tasks', async (req, res, next) => {
   }
 });
 
-router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
+router.post('/tasks/:taskId/complete', async (req, res, next) => {
   let trx;
   try {
     trx = await transaction.start(Task.knex());
 
     const task = await Task.query(trx)
       .where('id', req.params.taskId)
-      .andWhere('user_id', req.params.userId)
+      .andWhere('user_id', req.user_id)
       .eager('tags')
       .first()
       .throwIfNotFound();
@@ -130,7 +167,7 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
     await Task.query(trx)
       .delete()
       .where('id', req.params.taskId)
-      .andWhere('user_id', req.params.userId)
+      .andWhere('user_id', req.user_id)
       .throwIfNotFound();
 
     let newTask;
@@ -155,7 +192,7 @@ router.post('/:userId/tasks/:taskId/complete', async (req, res, next) => {
   }
 });
 
-router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
+router.patch('/tasks/:taskId', async (req, res, next) => {
   req.body.id = parseInt(req.params.taskId, 10);
   injectUserIdInTags(req);
 
@@ -181,12 +218,12 @@ router.patch('/:userId/tasks/:taskId', async (req, res, next) => {
   }
 });
 
-router.delete('/:userId/tasks/:taskId', async (req, res, next) => {
+router.delete('/tasks/:taskId', async (req, res, next) => {
   try {
     await Task.query()
       .delete()
       .where('id', req.params.taskId)
-      .andWhere('user_id', req.params.userId)
+      .andWhere('user_id', req.user_id)
       .throwIfNotFound();
 
     res.sendStatus(204);
@@ -197,9 +234,9 @@ router.delete('/:userId/tasks/:taskId', async (req, res, next) => {
 
 // Tag routes -----------------------------------------------------------------
 
-router.get('/:userId/tags', async (req, res, next) => {
+router.get('/tags', async (req, res, next) => {
   try {
-    const tags = await Tag.query().where('user_id', req.params.userId);
+    const tags = await Tag.query().where('user_id', req.user_id);
 
     res.json(tags);
   } catch (err) {
@@ -207,7 +244,7 @@ router.get('/:userId/tags', async (req, res, next) => {
   }
 });
 
-router.post('/:userId/tags', async (req, res, next) => {
+router.post('/tags', async (req, res, next) => {
   try {
     const newTag = await Tag.query().insert(req.body).returning('*');
 
@@ -217,12 +254,12 @@ router.post('/:userId/tags', async (req, res, next) => {
   }
 });
 
-router.patch('/:userId/tags/:tagId', async (req, res, next) => {
+router.patch('/tags/:tagId', async (req, res, next) => {
   try {
     const updatedTag = await Tag.query()
       .patch(req.body)
       .where('id', req.params.tagId)
-      .andWhere('user_id', req.params.userId)
+      .andWhere('user_id', req.user_id)
       .returning('*')
       .first()
       .throwIfNotFound();
@@ -233,12 +270,12 @@ router.patch('/:userId/tags/:tagId', async (req, res, next) => {
   }
 });
 
-router.delete('/:userId/tags/:tagId', async (req, res, next) => {
+router.delete('/tags/:tagId', async (req, res, next) => {
   try {
     await Tag.query()
       .delete()
       .where('id', req.params.tagId)
-      .andWhere('user_id', req.params.userId)
+      .andWhere('user_id', req.user_id)
       .throwIfNotFound();
 
     res.sendStatus(204);
