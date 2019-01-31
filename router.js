@@ -33,6 +33,10 @@ function injectUserIdInTags(req) {
 
 async function authenticate(req, res, next) {
   let token = req.get('authorization');
+  if (!token || typeof token !== 'string') {
+    return res.sendStatus(401);
+  }
+
   if (token.startsWith('Bearer ')) {
     // Remove Bearer from string
     token = token.slice(7, token.length);
@@ -41,10 +45,9 @@ async function authenticate(req, res, next) {
   try {
     const decodedToken = await admin.auth().verifyIdToken(token);
     req.auth_server_id = decodedToken.uid;
-    next();
+    return next();
   } catch (err) {
-    err.status = 401;
-    next(err);
+    return res.sendStatus(401);
   }
 }
 
