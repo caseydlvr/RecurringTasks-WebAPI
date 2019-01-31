@@ -10,6 +10,7 @@ class User extends BaseModel {
   static get jsonSchema() {
     return {
       type: 'object',
+      required: ['auth_server_id'],
 
       properties: {
         id: { type: 'integer' },

@@ -4,7 +4,7 @@ exports.up = (knex) => {
   return knex.schema
     .createTable('users', (table) => {
       table.increments('id').primary();
-      table.string('auth_server_id');
+      table.string('auth_server_id').unique().notNullable();
     })
     .createTable('tasks', (table) => {
       table.specificType('id', 'serial');
