@@ -6,13 +6,15 @@ const { transaction } = require('objection');
 const User = require('./models/User');
 const Task = require('./models/Task');
 const Tag = require('./models/Tag');
-// eslint-disable-next-line import/no-dynamic-require
-const serviceAccount = require(process.env.FIREBASE_PK_PATH);
 
 const router = express.Router();
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  }),
 });
 
 // Helper functions -----------------------------------------------------------
