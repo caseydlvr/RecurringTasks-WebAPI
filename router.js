@@ -140,6 +140,7 @@ router.get('/tasks/:taskId', async (req, res, next) => {
 
 router.post('/tasks', async (req, res, next) => {
   injectUserIdInTags(req);
+  delete req.body.id;
 
   let trx;
   try {
