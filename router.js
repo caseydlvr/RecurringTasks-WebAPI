@@ -251,6 +251,8 @@ router.get('/tags', async (req, res, next) => {
 });
 
 router.post('/tags', async (req, res, next) => {
+  delete req.body.id;
+
   try {
     const newTag = await Tag.query().insert(req.body).returning('*');
 
@@ -261,6 +263,8 @@ router.post('/tags', async (req, res, next) => {
 });
 
 router.patch('/tags/:tagId', async (req, res, next) => {
+  delete req.body.id;
+
   try {
     const updatedTag = await Tag.query()
       .patch(req.body)
