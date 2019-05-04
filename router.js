@@ -19,14 +19,27 @@ admin.initializeApp({
 
 // Helper functions -----------------------------------------------------------
 
-function injectUserIdInTags(req) {
-  if (Object.prototype.hasOwnProperty.call(req.body, 'tags')) {
-    if (Array.isArray(req.body.tags)) {
-      req.body.tags.forEach((tag, i) => {
-        req.body.tags[i].user_id = req.body.user_id;
+function injectUserIdInTags(body) {
+  if (Object.prototype.hasOwnProperty.call(body, 'tags')) {
+    if (Array.isArray(body.tags)) {
+      body.tags.forEach((tag, i) => {
+        body.tags[i].user_id = body.user_id;
       });
-    } else if (typeof req.body.tags === 'object') {
-      req.body.tags.user_id = req.body.user_id;
+    } else if (typeof body.tags === 'object') {
+      body.tags.user_id = body.user_id;
+    }
+  }
+}
+
+function injectUserIdInTasks(req) {
+  if (Object.prototype.hasOwnProperty.call(req.body, 'tasks')) {
+    if (Array.isArray(req.body.tasks)) {
+      req.body.tasks.forEach((task, i) => {
+        req.body.tasks[i].user_id = req.body.user_id;
+        injectUserIdInTags(req.body.tasks[i]);
+      });
+    } else if (typeof req.body.tasks === 'object') {
+      req.body.tasks.user_id = req.body.user_id;
     }
   }
 }
@@ -75,7 +88,7 @@ async function loadUser(req, res, next) {
   }
 }
 
-// Auth ----------------------------------------------------------------------
+// Auth -----------------------------------------------------------------------
 
 router.all('*', authenticate, loadUser);
 
@@ -139,7 +152,7 @@ router.get('/tasks/:taskId', async (req, res, next) => {
 });
 
 router.post('/tasks', async (req, res, next) => {
-  injectUserIdInTags(req);
+  injectUserIdInTags(req.body);
   delete req.body.id;
 
   let trx;
@@ -200,7 +213,7 @@ router.post('/tasks/:taskId/complete', async (req, res, next) => {
 
 router.patch('/tasks/:taskId', async (req, res, next) => {
   req.body.id = parseInt(req.params.taskId, 10);
-  injectUserIdInTags(req);
+  injectUserIdInTags(req.body);
 
   let trx;
   try {
@@ -290,6 +303,43 @@ router.delete('/tags/:tagId', async (req, res, next) => {
 
     res.sendStatus(204);
   } catch (err) {
+    next(err);
+  }
+});
+
+// Full data routes -----------------------------------------------------------
+
+router.post('/', async (req, res, next) => {
+  injectUserIdInTags(req.body);
+  injectUserIdInTasks(req);
+
+  let trx;
+
+  try {
+    trx = await transaction.start(Task.knex());
+
+    // delete existing tags
+    await Tag.query(trx)
+      .delete()
+      .where('user_id', req.user_id);
+
+    // delete existing tasks
+    await Task.query(trx)
+      .delete()
+      .where('user_id', req.user_id);
+
+    // insert all tags
+    await Tag.query(trx)
+      .insert(req.body.tags);
+
+    // insert all tasks
+    await Task.query(trx)
+      .insertGraph(req.body.tasks, { relate: true });
+
+    await trx.commit();
+    res.sendStatus(201);
+  } catch (err) {
+    await trx.rollback();
     next(err);
   }
 });
