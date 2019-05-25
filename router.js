@@ -44,6 +44,12 @@ function injectUserIdInTasks(req) {
   }
 }
 
+function stripIds(objectArray) {
+  objectArray.forEach((item) => {
+    delete item.id;
+  });
+}
+
 async function authenticate(req, res, next) {
   let token = req.get('authorization');
   if (!token || typeof token !== 'string') {
@@ -312,6 +318,8 @@ router.delete('/tags/:tagId', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   injectUserIdInTags(req.body);
   injectUserIdInTasks(req);
+  stripIds(req.body.tasks);
+  stripIds(req.body.tags);
 
   let trx;
 
@@ -329,15 +337,17 @@ router.post('/', async (req, res, next) => {
       .where('user_id', req.user_id);
 
     // insert all tags
-    await Tag.query(trx)
-      .insert(req.body.tags);
+    const tags = await Tag.query(trx)
+      .insert(req.body.tags)
+      .returning('*');
 
     // insert all tasks
-    await Task.query(trx)
-      .insertGraph(req.body.tasks, { relate: true });
+    const tasks = await Task.query(trx)
+      .insertGraph(req.body.tasks, { relate: true })
+      .returning('*');
 
     await trx.commit();
-    res.sendStatus(201);
+    res.status(201).json({ tasks, tags });
   } catch (err) {
     await trx.rollback();
     next(err);
