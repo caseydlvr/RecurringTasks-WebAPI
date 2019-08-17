@@ -20,7 +20,7 @@ class Task extends BaseModel {
         'notification_option'],
 
       properties: {
-        id: { type: 'integer' },
+        id: { type: 'string', format: 'uuid' },
         user_id: { type: 'integer', minimum: 1 },
         name: { type: 'string', minLength: 1, maxLength: 255 },
         duration: { type: 'integer', minimum: 1, maximum: 999 },

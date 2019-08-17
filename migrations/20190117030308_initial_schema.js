@@ -2,12 +2,13 @@
 
 exports.up = (knex) => {
   return knex.schema
+    .raw('CREATE EXTENSION IF NOT EXISTS "pgcrypto"')
     .createTable('users', (table) => {
       table.increments('id').primary();
       table.string('auth_server_id').unique().notNullable();
     })
     .createTable('tasks', (table) => {
-      table.specificType('id', 'serial');
+      table.uuid('id').notNullable().defaultTo(knex.raw('gen_random_uuid()'));
       table
         .integer('user_id')
         .unsigned()
@@ -25,7 +26,7 @@ exports.up = (knex) => {
       table.index('user_id');
     })
     .createTable('tags', (table) => {
-      table.specificType('id', 'serial');
+      table.uuid('id').notNullable().defaultTo(knex.raw('gen_random_uuid()'));
       table
         .integer('user_id')
         .unsigned()
@@ -38,18 +39,9 @@ exports.up = (knex) => {
       table.index('user_id');
     })
     .createTable('tasks_tags', (table) => {
-      table
-        .integer('task_id')
-        .unsigned()
-        .notNullable();
-      table
-        .integer('tag_id')
-        .unsigned()
-        .notNullable();
-      table
-        .integer('user_id')
-        .unsigned()
-        .notNullable();
+      table.uuid('task_id').notNullable();
+      table.uuid('tag_id').notNullable();
+      table.integer('user_id').unsigned().notNullable();
       table
         .foreign(['task_id', 'user_id'])
         .references(['id', 'user_id'])

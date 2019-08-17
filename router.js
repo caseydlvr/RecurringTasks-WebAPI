@@ -2,7 +2,7 @@
 
 const admin = require('firebase-admin');
 const express = require('express');
-const { transaction } = require('objection');
+const { transaction, NotFoundError } = require('objection');
 const User = require('./models/User');
 const Task = require('./models/Task');
 const Tag = require('./models/Tag');
@@ -98,36 +98,6 @@ async function loadUser(req, res, next) {
 
 router.all('*', authenticate, loadUser);
 
-// Param middleware -----------------------------------------------------------
-
-// abort if task doesn't exist or isn't this user's task
-router.param('taskId', async (req, res, next) => {
-  try {
-    await Task.query()
-      .where('id', req.params.taskId)
-      .andWhere('user_id', req.user_id)
-      .throwIfNotFound();
-
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
-
-// abort if tag doesn't exist or isn't this user's tag
-router.param('tagId', async (req, res, next) => {
-  try {
-    await Tag.query()
-      .where('id', req.params.tagId)
-      .andWhere('user_id', req.user_id)
-      .throwIfNotFound();
-
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
-
 // Task routes ----------------------------------------------------------------
 
 router.get('/tasks', async (req, res, next) => {
@@ -153,26 +123,6 @@ router.get('/tasks/:taskId', async (req, res, next) => {
 
     res.json(task);
   } catch (err) {
-    next(err);
-  }
-});
-
-router.post('/tasks', async (req, res, next) => {
-  injectUserIdInTags(req.body);
-  delete req.body.id;
-
-  let trx;
-  try {
-    trx = await transaction.start(Task.knex());
-
-    const newTask = await Task.query(trx)
-      .allowInsert('tags')
-      .insertWithRelatedAndFetch(req.body, { relate: true });
-
-    await trx.commit();
-    res.status(201).json(newTask);
-  } catch (err) {
-    await trx.rollback();
     next(err);
   }
 });
@@ -217,29 +167,61 @@ router.post('/tasks/:taskId/complete', async (req, res, next) => {
   }
 });
 
-router.patch('/tasks/:taskId', async (req, res, next) => {
-  req.body.id = parseInt(req.params.taskId, 10);
+router.put('/tasks/:taskId', async (req, res, next) => {
+  req.body.id = req.params.taskId;
   injectUserIdInTags(req.body);
 
-  let trx;
+  let exists = true;
+
   try {
-    trx = await transaction.start(Task.knex());
-
-    const updatedTask = await Task.query(trx)
-      .upsertGraphAndFetch(req.body, {
-        relate: ['tags'],
-        unrelate: ['tags'],
-        noInsert: ['tags', 'users'],
-        noUpdate: ['tags', 'users'],
-        noDelete: ['tags', 'users'],
-      })
-      .eager('tags');
-
-    await trx.commit();
-    res.json(updatedTask);
+    await Task.query()
+      .where('id', req.body.id)
+      .andWhere('user_id', req.user_id)
+      .throwIfNotFound();
   } catch (err) {
-    await trx.rollback();
-    next(err);
+    if (err instanceof NotFoundError) {
+      exists = false;
+    } else {
+      next(err);
+    }
+  }
+
+  let trx;
+
+  if (exists) { // update
+    try {
+      trx = await transaction.start(Task.knex());
+
+      const updatedTask = await Task.query(trx)
+        .upsertGraphAndFetch(req.body, {
+          relate: ['tags'],
+          unrelate: ['tags'],
+          noInsert: ['tags', 'users'],
+          noUpdate: ['tags', 'users'],
+          noDelete: ['tags', 'users'],
+        })
+        .eager('tags');
+
+      await trx.commit();
+      res.json(updatedTask);
+    } catch (err) {
+      await trx.rollback();
+      next(err);
+    }
+  } else { // create
+    try {
+      trx = await transaction.start(Task.knex());
+
+      const newTask = await Task.query(trx)
+        .allowInsert('tags')
+        .insertWithRelatedAndFetch(req.body, { relate: true });
+
+      await trx.commit();
+      res.status(201).json(newTask);
+    } catch (err) {
+      await trx.rollback();
+      next(err);
+    }
   }
 });
 
@@ -269,33 +251,46 @@ router.get('/tags', async (req, res, next) => {
   }
 });
 
-router.post('/tags', async (req, res, next) => {
-  delete req.body.id;
+router.put('/tags/:tagId', async (req, res, next) => {
+  req.body.id = req.params.tagId;
+
+  let exists = true;
 
   try {
-    const newTag = await Tag.query().insert(req.body).returning('*');
-
-    res.json(newTag);
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.patch('/tags/:tagId', async (req, res, next) => {
-  delete req.body.id;
-
-  try {
-    const updatedTag = await Tag.query()
-      .patch(req.body)
-      .where('id', req.params.tagId)
+    await Tag.query()
+      .where('id', req.body.id)
       .andWhere('user_id', req.user_id)
-      .returning('*')
-      .first()
       .throwIfNotFound();
-
-    res.json(updatedTag);
   } catch (err) {
-    next(err);
+    if (err instanceof NotFoundError) {
+      exists = false;
+    } else {
+      next(err);
+    }
+  }
+
+  if (exists) { // update
+    try {
+      const updatedTag = await Tag.query()
+        .patch(req.body)
+        .where('id', req.body.id)
+        .andWhere('user_id', req.user_id)
+        .returning('*')
+        .first()
+        .throwIfNotFound();
+
+      res.json(updatedTag);
+    } catch (err) {
+      next(err);
+    }
+  } else { // create
+    try {
+      const newTag = await Tag.query().insert(req.body).returning('*');
+
+      res.json(newTag);
+    } catch (err) {
+      next(err);
+    }
   }
 });
 
