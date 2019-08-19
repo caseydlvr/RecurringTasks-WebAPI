@@ -13,7 +13,11 @@ class Tag extends BaseModel {
       required: ['user_id', 'name'],
 
       properties: {
-        id: { type: 'string', format: 'uuid' },
+        id: {
+          type: 'string',
+          format: 'uuid',
+          pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+        },
         user_id: { type: 'integer', minimum: 1 },
         name: { type: 'string', minLength: 1, maxLength: 255 },
       },
