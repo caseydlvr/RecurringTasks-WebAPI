@@ -3,9 +3,9 @@ const { transaction, NotFoundError } = require('objection');
 const Task = require('../models/Task');
 const { injectUserIdInTags } = require('./helpers');
 
-const router = express.Router();
+const taskRouter = express.Router();
 
-router.get('/tasks', async (req, res, next) => {
+taskRouter.get('/tasks', async (req, res, next) => {
   try {
     const tasks = await Task.query()
       .where('user_id', req.user_id)
@@ -17,7 +17,7 @@ router.get('/tasks', async (req, res, next) => {
   }
 });
 
-router.get('/tasks/:taskId', async (req, res, next) => {
+taskRouter.get('/tasks/:taskId', async (req, res, next) => {
   try {
     const task = await Task.query()
       .where('id', req.params.taskId)
@@ -32,7 +32,7 @@ router.get('/tasks/:taskId', async (req, res, next) => {
   }
 });
 
-router.post('/tasks/:taskId/complete', async (req, res, next) => {
+taskRouter.post('/tasks/:taskId/complete', async (req, res, next) => {
   let trx;
   try {
     trx = await transaction.start(Task.knex());
@@ -72,7 +72,7 @@ router.post('/tasks/:taskId/complete', async (req, res, next) => {
   }
 });
 
-router.put('/tasks/:taskId', async (req, res, next) => {
+taskRouter.put('/tasks/:taskId', async (req, res, next) => {
   req.body.id = req.params.taskId;
   injectUserIdInTags(req.body);
 
@@ -130,7 +130,7 @@ router.put('/tasks/:taskId', async (req, res, next) => {
   }
 });
 
-router.delete('/tasks/:taskId', async (req, res, next) => {
+taskRouter.delete('/tasks/:taskId', async (req, res, next) => {
   try {
     await Task.query()
       .delete()
@@ -144,4 +144,4 @@ router.delete('/tasks/:taskId', async (req, res, next) => {
   }
 });
 
-module.exports = router;
+module.exports = taskRouter;

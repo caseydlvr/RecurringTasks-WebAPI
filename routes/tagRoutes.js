@@ -2,9 +2,9 @@ const express = require('express');
 const { NotFoundError } = require('objection');
 const Tag = require('../models/Tag');
 
-const router = express.Router();
+const tagRouter = express.Router();
 
-router.get('/tags', async (req, res, next) => {
+tagRouter.get('/tags', async (req, res, next) => {
   try {
     const tags = await Tag.query().where('user_id', req.user_id);
 
@@ -14,7 +14,7 @@ router.get('/tags', async (req, res, next) => {
   }
 });
 
-router.put('/tags/:tagId', async (req, res, next) => {
+tagRouter.put('/tags/:tagId', async (req, res, next) => {
   req.body.id = req.params.tagId;
 
   let exists = true;
@@ -57,7 +57,7 @@ router.put('/tags/:tagId', async (req, res, next) => {
   }
 });
 
-router.delete('/tags/:tagId', async (req, res, next) => {
+tagRouter.delete('/tags/:tagId', async (req, res, next) => {
   try {
     await Tag.query()
       .delete()
@@ -71,4 +71,4 @@ router.delete('/tags/:tagId', async (req, res, next) => {
   }
 });
 
-module.exports = router;
+module.exports = tagRouter;

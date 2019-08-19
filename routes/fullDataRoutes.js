@@ -4,9 +4,9 @@ const Tag = require('../models/Tag');
 const Task = require('../models/Task');
 const { stripIds, injectUserIdInTags, injectUserIdInTasks } = require('./helpers');
 
-const router = express.Router();
+const fullDataRouter = express.Router();
 
-router.post('/', async (req, res, next) => {
+fullDataRouter.post('/', async (req, res, next) => {
   injectUserIdInTags(req.body);
   injectUserIdInTasks(req);
   stripIds(req.body.tasks);
@@ -45,4 +45,4 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-module.exports = router;
+module.exports = fullDataRouter;
