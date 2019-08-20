@@ -1,15 +1,13 @@
 const express = require('express');
-const { transaction, NotFoundError } = require('objection');
-const Task = require('../models/Task');
+const { NotFoundError } = require('objection');
+const TaskQueries = require('../queries/TaskQueries');
 const { injectUserIdInTags } = require('./helpers');
 
 const taskRouter = express.Router();
 
 taskRouter.get('/tasks', async (req, res, next) => {
   try {
-    const tasks = await Task.query()
-      .where('user_id', req.user_id)
-      .eager('tags');
+    const tasks = await TaskQueries.getAll(req.user_id);
 
     res.json(tasks);
   } catch (err) {
@@ -19,12 +17,7 @@ taskRouter.get('/tasks', async (req, res, next) => {
 
 taskRouter.get('/tasks/:taskId', async (req, res, next) => {
   try {
-    const task = await Task.query()
-      .where('id', req.params.taskId)
-      .andWhere('user_id', req.user_id)
-      .eager('tags')
-      .first()
-      .throwIfNotFound();
+    const task = await TaskQueries.get(req.params.taskId, req.user_id);
 
     res.json(task);
   } catch (err) {
@@ -33,33 +26,8 @@ taskRouter.get('/tasks/:taskId', async (req, res, next) => {
 });
 
 taskRouter.post('/tasks/:taskId/complete', async (req, res, next) => {
-  let trx;
   try {
-    trx = await transaction.start(Task.knex());
-
-    const task = await Task.query(trx)
-      .where('id', req.params.taskId)
-      .andWhere('user_id', req.user_id)
-      .eager('tags')
-      .first()
-      .throwIfNotFound();
-
-    await Task.query(trx)
-      .delete()
-      .where('id', req.params.taskId)
-      .andWhere('user_id', req.user_id)
-      .throwIfNotFound();
-
-    let newTask;
-
-    if (task.repeating) {
-      delete task.id;
-      delete task.start_date;
-      newTask = await Task.query(trx)
-        .insertWithRelatedAndFetch(task, { relate: true });
-    }
-
-    await trx.commit();
+    const newTask = await TaskQueries.complete(req.params.taskId, req.user_id);
 
     if (newTask) {
       res.status(201).json(newTask);
@@ -67,7 +35,6 @@ taskRouter.post('/tasks/:taskId/complete', async (req, res, next) => {
       res.sendStatus(204);
     }
   } catch (err) {
-    await trx.rollback();
     next(err);
   }
 });
@@ -79,10 +46,7 @@ taskRouter.put('/tasks/:taskId', async (req, res, next) => {
   let exists = true;
 
   try {
-    await Task.query()
-      .where('id', req.body.id)
-      .andWhere('user_id', req.user_id)
-      .throwIfNotFound();
+    await TaskQueries.get(req.params.taskId, req.user_id);
   } catch (err) {
     if (err instanceof NotFoundError) {
       exists = false;
@@ -91,40 +55,20 @@ taskRouter.put('/tasks/:taskId', async (req, res, next) => {
     }
   }
 
-  let trx;
-
   if (exists) { // update
     try {
-      trx = await transaction.start(Task.knex());
+      const updatedTask = await TaskQueries.update(req.body);
 
-      const updatedTask = await Task.query(trx)
-        .upsertGraphAndFetch(req.body, {
-          relate: ['tags'],
-          unrelate: ['tags'],
-          noInsert: ['tags', 'users'],
-          noUpdate: ['tags', 'users'],
-          noDelete: ['tags', 'users'],
-        })
-        .eager('tags');
-
-      await trx.commit();
       res.json(updatedTask);
     } catch (err) {
-      await trx.rollback();
       next(err);
     }
   } else { // create
     try {
-      trx = await transaction.start(Task.knex());
+      const newTask = await TaskQueries.create(req.body);
 
-      const newTask = await Task.query(trx)
-        .allowInsert('tags')
-        .insertWithRelatedAndFetch(req.body, { relate: true });
-
-      await trx.commit();
       res.status(201).json(newTask);
     } catch (err) {
-      await trx.rollback();
       next(err);
     }
   }
@@ -132,11 +76,7 @@ taskRouter.put('/tasks/:taskId', async (req, res, next) => {
 
 taskRouter.delete('/tasks/:taskId', async (req, res, next) => {
   try {
-    await Task.query()
-      .delete()
-      .where('id', req.params.taskId)
-      .andWhere('user_id', req.user_id)
-      .throwIfNotFound();
+    await TaskQueries.delete(req.params.taskId, req.user_id);
 
     res.sendStatus(204);
   } catch (err) {
