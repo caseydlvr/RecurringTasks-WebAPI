@@ -1,12 +1,12 @@
 const express = require('express');
 const { NotFoundError } = require('objection');
-const Tag = require('../models/Tag');
+const TagQueries = require('../queries/TagQueries');
 
 const tagRouter = express.Router();
 
 tagRouter.get('/tags', async (req, res, next) => {
   try {
-    const tags = await Tag.query().where('user_id', req.user_id);
+    const tags = await TagQueries.getAll(req.user_id);
 
     res.json(tags);
   } catch (err) {
@@ -20,10 +20,7 @@ tagRouter.put('/tags/:tagId', async (req, res, next) => {
   let exists = true;
 
   try {
-    await Tag.query()
-      .where('id', req.body.id)
-      .andWhere('user_id', req.user_id)
-      .throwIfNotFound();
+    await TagQueries.get(req.params.tagId, req.user_id);
   } catch (err) {
     if (err instanceof NotFoundError) {
       exists = false;
@@ -34,13 +31,7 @@ tagRouter.put('/tags/:tagId', async (req, res, next) => {
 
   if (exists) { // update
     try {
-      const updatedTag = await Tag.query()
-        .patch(req.body)
-        .where('id', req.body.id)
-        .andWhere('user_id', req.user_id)
-        .returning('*')
-        .first()
-        .throwIfNotFound();
+      const updatedTag = await TagQueries.update(req.body);
 
       res.json(updatedTag);
     } catch (err) {
@@ -48,7 +39,7 @@ tagRouter.put('/tags/:tagId', async (req, res, next) => {
     }
   } else { // create
     try {
-      const newTag = await Tag.query().insert(req.body).returning('*');
+      const newTag = await TagQueries.create(req.body);
 
       res.json(newTag);
     } catch (err) {
@@ -59,11 +50,7 @@ tagRouter.put('/tags/:tagId', async (req, res, next) => {
 
 tagRouter.delete('/tags/:tagId', async (req, res, next) => {
   try {
-    await Tag.query()
-      .delete()
-      .where('id', req.params.tagId)
-      .andWhere('user_id', req.user_id)
-      .throwIfNotFound();
+    await TagQueries.delete(req.params.tagId, req.user_id);
 
     res.sendStatus(204);
   } catch (err) {
