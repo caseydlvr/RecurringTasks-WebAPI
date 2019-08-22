@@ -7,8 +7,6 @@ const fullDataRoutes = require('./routes/fullDataRoutes');
 
 const router = express.Router();
 
-// Routes ---------------------------------------------------------------------
-
 router.use(taskRoutes);
 router.use(tagRoutes);
 router.use(fullDataRoutes);
