@@ -1,7 +1,7 @@
 {
   "name": "RecurringTasks-WebAPI",
   "version": "1.0.0",
-  "description": "",
+  "description": "API server for Recurring Tasks",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
@@ -13,7 +13,7 @@
   },
   "keywords": [],
   "author": "Casey de la Veag-Rawson",
-  "license": "",
+  "license": "UNLICENSED",
   "bugs": {
     "url": "https://github.com/caseydlvr/RecurringTasks-WebAPI/issues"
   },
@@ -22,7 +22,7 @@
     "body-parser": "^1.19.0",
     "dotenv": "^8.1.0",
     "express": "^4.17.1",
-    "firebase-admin": "^8.3.0",
+    "firebase-admin": "^8.4.0",
     "knex": "^0.19.2",
     "morgan": "^1.9.1",
     "objection": "^1.6.9",
@@ -30,7 +30,7 @@
     "pg": "^7.12.1"
   },
   "devDependencies": {
-    "eslint": "^6.2.0",
+    "eslint": "^6.2.1",
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-plugin-import": "^2.18.2"
   }
