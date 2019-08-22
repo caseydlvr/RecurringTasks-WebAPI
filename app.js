@@ -9,6 +9,7 @@ const { Model } = require('objection');
 const Knex = require('knex');
 const knexConfig = require('./knexfile')[env];
 const authenticate = require('./middleware/authenticate');
+const loadUser = require('./middleware/loadUser');
 const router = require('./router');
 const { catchRouteNotFound, errorHandler } = require('./error');
 
@@ -17,6 +18,7 @@ const app = express()
   .use(bodyParser.json())
   .use(morgan('dev'))
   .use(authenticate)
+  .use(loadUser)
   .use(router)
   .use(catchRouteNotFound)
   .use(errorHandler)
