@@ -8,6 +8,7 @@ const bodyParser = require('body-parser');
 const { Model } = require('objection');
 const Knex = require('knex');
 const knexConfig = require('./knexfile')[env];
+const authenticate = require('./middleware/authenticate');
 const router = require('./router');
 const { catchRouteNotFound, errorHandler } = require('./error');
 
@@ -15,6 +16,7 @@ const knex = Knex(knexConfig);
 const app = express()
   .use(bodyParser.json())
   .use(morgan('dev'))
+  .use(authenticate)
   .use(router)
   .use(catchRouteNotFound)
   .use(errorHandler)
