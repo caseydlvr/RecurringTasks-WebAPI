@@ -1,6 +1,6 @@
 const Tag = require('../models/Tag');
 
-const TagQueries = {
+const tagQueries = {
 
   getAll: (userId) => Tag.query().where('user_id', userId),
 
@@ -26,4 +26,4 @@ const TagQueries = {
     .throwIfNotFound(),
 };
 
-module.exports = TagQueries;
+module.exports = tagQueries;

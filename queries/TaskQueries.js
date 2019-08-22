@@ -1,7 +1,7 @@
 const { transaction } = require('objection');
 const Task = require('../models/Task');
 
-const TaskQueries = {
+const taskQueries = {
 
   getAll: (userId, trx = false) => Task.query(trx)
     .where('user_id', userId)
@@ -66,14 +66,14 @@ const TaskQueries = {
     try {
       trx = await transaction.start(Task.knex());
 
-      const task = await TaskQueries.get(taskId, userId, trx);
-      await TaskQueries.delete(taskId, userId, trx);
+      const task = await taskQueries.get(taskId, userId, trx);
+      await taskQueries.delete(taskId, userId, trx);
       let newTask = null;
 
       if (task.repeating) {
         delete task.id;
         delete task.start_date;
-        newTask = await TaskQueries.create(task, trx);
+        newTask = await taskQueries.create(task, trx);
       }
 
       await trx.commit();
@@ -86,4 +86,4 @@ const TaskQueries = {
   },
 };
 
-module.exports = TaskQueries;
+module.exports = taskQueries;
