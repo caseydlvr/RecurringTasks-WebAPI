@@ -2,10 +2,10 @@
 
 const admin = require('firebase-admin');
 const express = require('express');
-const User = require('./models/User');
 const taskRoutes = require('./routes/taskRoutes');
 const tagRoutes = require('./routes/tagRoutes');
 const fullDataRoutes = require('./routes/fullDataRoutes');
+const userQueries = require('./queries/userQueries');
 
 const router = express.Router();
 
@@ -42,16 +42,11 @@ async function authenticate(req, res, next) {
 async function loadUser(req, res, next) {
   let user;
   try {
-    user = await User.query()
-      .where('auth_server_id', req.auth_server_id)
-      .first();
+    user = await userQueries.getByAuthServerId(req.auth_server_id);
 
     // user doesn't exist in DB yet, create
     if (!user) {
-      user = await User.query()
-        .insert({ auth_server_id: req.auth_server_id })
-        .returning('*')
-        .throwIfNotFound();
+      user = await userQueries.create({ auth_server_id: req.auth_server_id });
     }
 
     req.user_id = user.id;
