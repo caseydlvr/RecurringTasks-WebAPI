@@ -62,14 +62,14 @@ const TaskQueries = {
 
   complete: async (taskId, userId) => {
     let trx;
-    
+
     try {
       trx = await transaction.start(Task.knex());
 
       const task = await TaskQueries.get(taskId, userId, trx);
       await TaskQueries.delete(taskId, userId, trx);
       let newTask = null;
-      
+
       if (task.repeating) {
         delete task.id;
         delete task.start_date;
