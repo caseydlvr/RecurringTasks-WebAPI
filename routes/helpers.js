@@ -23,10 +23,4 @@ function injectUserIdInTasks(req) {
   }
 }
 
-function stripIds(objectArray) {
-  objectArray.forEach((item) => {
-    delete item.id;
-  });
-}
-
-module.exports = { injectUserIdInTags, injectUserIdInTasks, stripIds };
+module.exports = { injectUserIdInTags, injectUserIdInTasks };

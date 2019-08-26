@@ -2,15 +2,13 @@ const express = require('express');
 const { transaction } = require('objection');
 const Tag = require('../models/Tag');
 const Task = require('../models/Task');
-const { stripIds, injectUserIdInTags, injectUserIdInTasks } = require('./helpers');
+const { injectUserIdInTags, injectUserIdInTasks } = require('./helpers');
 
 const fullDataRouter = express.Router();
 
 fullDataRouter.post('/', async (req, res, next) => {
   injectUserIdInTags(req.body);
   injectUserIdInTasks(req);
-  stripIds(req.body.tasks);
-  stripIds(req.body.tags);
 
   let trx;
 
