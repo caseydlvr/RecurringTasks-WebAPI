@@ -1,6 +1,6 @@
 'use strict';
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 const env = process.env.NODE_ENV || 'development';
 const express = require('express');
 const morgan = require('morgan');
