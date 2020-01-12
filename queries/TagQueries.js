@@ -4,7 +4,7 @@ const tagQueries = {
 
   getAll: (userId) => Tag.query().where('user_id', userId),
 
-  get:(tagId, userId) => Tag.query()
+  get: (tagId, userId) => Tag.query()
     .where('id', tagId)
     .andWhere('user_id', userId)
     .throwIfNotFound(),
