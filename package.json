@@ -25,16 +25,16 @@
     "body-parser": "^1.19.0",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
-    "firebase-admin": "^8.9.0",
-    "knex": "^0.20.7",
+    "firebase-admin": "^8.9.2",
+    "knex": "^0.20.9",
     "morgan": "^1.9.1",
     "objection": "^1.6.11",
     "objection-db-errors": "^1.1.2",
-    "pg": "^7.17.1"
+    "pg": "^7.18.1"
   },
   "devDependencies": {
     "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.0.0",
-    "eslint-plugin-import": "^2.20.0"
+    "eslint-plugin-import": "^2.20.1"
   }
 }
